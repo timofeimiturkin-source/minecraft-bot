@@ -24,7 +24,7 @@ menu = ReplyKeyboardMarkup(
 )
 
 amount_menu = ReplyKeyboardMarkup(
-    [["10", "20", "50"], ["✏️ Своя сумма"]],
+    [["10kk", "20kk", "50kk"], ["✏️ Своя сумма(в кк)"]],
     resize_keyboard=True
 )
 
@@ -192,7 +192,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("введи число")
         return
 
-    if text in ["10", "20", "50"]:
+    if text in ["10кк", "20кк", "50кк"]:
         waiting_nick[user_id] = float(text)
         await update.message.reply_text("🎮 Введи ник:")
         return
