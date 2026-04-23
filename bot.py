@@ -1,13 +1,10 @@
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
-import time
 
 # ================== НАСТРОЙКИ ==================
 TOKEN = "8522934495:AAEyGsE4RYznrBQp41HrF3zjoc-B15UyJKA"
 ADMIN_ID = 8284104420
 BOT_USERNAME = "VimeVirt_bot"
-
-SERVER_NAME = "VimeMc"
 
 PAYMENT_TEXT = (
     "💳 Реквизиты для оплаты:\n\n"
@@ -19,12 +16,12 @@ REVIEW_LINK = "https://t.me/+OKkKi9f8eAMwODEy"
 
 # ================== МЕНЮ ==================
 menu = ReplyKeyboardMarkup(
-    [["💰 Купить валюту(кк)", "👥 Рефералка"]],
+    [["💰 Купить валюту", "👥 Рефералка"]],
     resize_keyboard=True
 )
 
 amount_menu = ReplyKeyboardMarkup(
-    [["10", "20", "50"], ["✏️ Своя сумма(в кк)"]],
+    [["10", "20", "50"], ["✏️ Своя сумма"]],
     resize_keyboard=True
 )
 
@@ -38,7 +35,6 @@ bonus_balance = {}
 review_bonus = {}
 
 order_counter = 1000
-last_request = {}
 
 prices = {
     "small": 4.5,
@@ -59,7 +55,6 @@ def calc_price(amount):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
 
-    # рефералка через ссылку
     if context.args:
         try:
             ref_id = int(context.args[0])
@@ -72,8 +67,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
         "💰 Магазин валюты\n\n"
-        f"👥 Приглашай друзей и получай +2 млн\n"
-        f"🔗 Твоя ссылка:\n{ref_link}",
+        f"🔗 Ваша реферальная ссылка:\n{ref_link}",
         reply_markup=menu
     )
 
@@ -83,8 +77,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     text = update.message.text
     user_id = update.effective_user.id
+    username = update.effective_user.username or "нет_username"
 
-    # ================== РЕФЕРАЛКА КНОПКА ==================
+    # ================== РЕФЕРАЛКА ==================
     if text == "👥 Рефералка":
         ref_link = f"https://t.me/{BOT_USERNAME}?start={user_id}"
 
@@ -103,9 +98,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await update.message.reply_text("Нет заказов")
                 return
 
-            msg = "📋 Заказы:\n\n"
+            msg = "📋 ЗАКАЗЫ:\n\n"
             for oid, o in orders.items():
-                msg += f"#{oid} | {o['nick']} | {o['amount']}м | {o['price']}₽\n"
+                msg += (
+                    f"#{oid}\n"
+                    f"🔗 @{o.get('username','нет_username')}\n"
+                    f"🎮 {o['nick']}\n"
+                    f"📦 {o['amount']} млн\n"
+                    f"💰 {o['price']} руб\n\n"
+                )
 
             await update.message.reply_text(msg)
             return
@@ -128,8 +129,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     await context.bot.send_message(
                         chat_id=o["user_id"],
                         text=(
-                            "⭐ Заказ выполнен!\n\n"
-                            f"👥 Рефералка:\nhttps://t.me/{BOT_USERNAME}?start={o['user_id']}\n\n"
+                            "⭐ Спасибо за заказ!\n\n"
                             f"💬 Оставь отзыв:\n{REVIEW_LINK}\n\n"
                             "🎁 +1 млн бонус за отзыв"
                         )
@@ -138,24 +138,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     await update.message.reply_text(f"Готово #{oid}")
             except:
                 await update.message.reply_text("done 1001")
-            return
-
-        if text.startswith("setprice"):
-            try:
-                _, limit, price = text.split()
-                limit = float(limit)
-                price = float(price)
-
-                if limit <= 10:
-                    prices["small"] = price
-                elif limit <= 50:
-                    prices["medium"] = price
-                else:
-                    prices["large"] = price
-
-                await update.message.reply_text("Цена обновлена")
-            except:
-                await update.message.reply_text("setprice 10 5")
             return
 
     # ================== ПОЛЬЗОВАТЕЛЬ ==================
@@ -169,7 +151,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Введи сумму (до 120 млн):")
         return
 
-    # кастом сумма
     if user_id in waiting_custom:
         try:
             amount = float(text)
@@ -190,7 +171,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("🎮 Введи ник:")
         return
 
-    # ник
+    # ================== ЗАКАЗ ==================
     if user_id in waiting_nick:
         nick = text
         amount = waiting_nick.pop(user_id)
@@ -210,21 +191,18 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         orders[oid] = {
             "user_id": user_id,
+            "username": username,
             "nick": nick,
             "amount": amount,
             "price": final_price
         }
 
-        # реферал +2 млн
         ref = user_ref.get(user_id)
         if ref:
             bonus_balance[ref] = bonus_balance.get(ref, 0) + 2
 
-        ref_link = f"https://t.me/{BOT_USERNAME}?start={user_id}"
-
         await update.message.reply_text(
             f"🧾 Заказ #{oid}\n\n"
-            f"👤 {nick}\n"
             f"📦 {amount} млн\n"
             f"💰 {final_price} руб\n\n"
             f"{PAYMENT_TEXT}\n\n"
@@ -233,21 +211,26 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await context.bot.send_message(
             chat_id=ADMIN_ID,
-            text=f"🛒 #{oid}\n{nick}\n{amount} млн\n{final_price} руб"
+            text=(
+                f"🛒 НОВЫЙ ЗАКАЗ #{oid}\n\n"
+                f"🔗 @{username}\n"
+                f"🆔 {user_id}\n\n"
+                f"🎮 Ник: {nick}\n"
+                f"📦 {amount} млн\n"
+                f"💰 {final_price} руб"
+            )
         )
         return
 
 # ================== СКРИН ==================
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    photo = update.message.photo[-1].file_id
-
     await context.bot.send_photo(
         chat_id=ADMIN_ID,
-        photo=photo,
-        caption=f"📸 скрин @{update.effective_user.username}"
+        photo=update.message.photo[-1].file_id,
+        caption=f"📸 скрин @{update.effective_user.username or 'нет_username'}"
     )
 
-    await update.message.reply_text("⏳ Ожидайте пополнения баланса")
+    await update.message.reply_text("⏳ ожидайте пополнения баланса")
 
 # ================== ЗАПУСК ==================
 def main():
