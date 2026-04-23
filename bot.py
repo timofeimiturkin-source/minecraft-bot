@@ -19,7 +19,7 @@ REVIEW_LINK = "https://t.me/+OKkKi9f8eAMwODEy"
 
 # ================== МЕНЮ ==================
 menu = ReplyKeyboardMarkup(
-    [["💰 Купить валюту", "🖥 Сервер"]],
+    [["💰 Купить валюту", "👥 Рефералка"]],
     resize_keyboard=True
 )
 
@@ -68,7 +68,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except:
             pass
 
-    # реф ссылка
     ref_link = f"https://t.me/{BOT_USERNAME}?start={user_id}"
 
     await update.message.reply_text(
@@ -91,6 +90,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("⏳ Подожди")
             return
     last_request[user_id] = time.time()
+
+    # ================== РЕФЕРАЛКА КНОПКА ==================
+    if text == "👥 Рефералка":
+        ref_link = f"https://t.me/{BOT_USERNAME}?start={user_id}"
+
+        await update.message.reply_text(
+            "👥 Реферальная система\n\n"
+            f"🔗 Ваша ссылка:\n{ref_link}\n\n"
+            "💰 За каждого друга: +2 млн"
+        )
+        return
 
     # ================== АДМИН ==================
     if user_id == ADMIN_ID:
@@ -125,7 +135,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     await context.bot.send_message(
                         chat_id=o["user_id"],
                         text=(
-                            "⭐ Спасибо за заказ!\n\n"
+                            "⭐ Заказ выполнен!\n\n"
+                            f"👥 Рефералка:\nhttps://t.me/{BOT_USERNAME}?start={o['user_id']}\n\n"
                             f"💬 Оставь отзыв:\n{REVIEW_LINK}\n\n"
                             "🎁 +1 млн бонус за отзыв"
                         )
@@ -158,10 +169,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if text == "💰 Купить валюту":
         await update.message.reply_text("Выбери сумму:", reply_markup=amount_menu)
-        return
-
-    if text == "🖥 Сервер":
-        await update.message.reply_text(f"Сервер: {SERVER_NAME}")
         return
 
     if text == "✏️ Своя сумма":
@@ -220,6 +227,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if ref:
             bonus_balance[ref] = bonus_balance.get(ref, 0) + 2
 
+        ref_link = f"https://t.me/{BOT_USERNAME}?start={user_id}"
+
         await update.message.reply_text(
             f"🧾 Заказ #{oid}\n\n"
             f"👤 {nick}\n"
@@ -245,7 +254,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         caption=f"📸 скрин @{update.effective_user.username}"
     )
 
-    await update.message.reply_text("⏳ ожидайте подтверждения")
+    await update.message.reply_text("⏳ Ожидайте пополнения баланса")
 
 # ================== ЗАПУСК ==================
 def main():
