@@ -19,12 +19,12 @@ REVIEW_LINK = "https://t.me/+OKkKi9f8eAMwODEy"
 
 # ================== МЕНЮ ==================
 menu = ReplyKeyboardMarkup(
-    [["💰 Купить валюту", "👥 Рефералка"]],
+    [["💰 Купить валюту(кк)", "👥 Рефералка"]],
     resize_keyboard=True
 )
 
 amount_menu = ReplyKeyboardMarkup(
-    [["10kk", "20kk", "50kk"], ["✏️ Своя сумма(в кк)"]],
+    [["10", "20", "50"], ["✏️ Своя сумма(в кк)"]],
     resize_keyboard=True
 )
 
@@ -83,13 +83,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     text = update.message.text
     user_id = update.effective_user.id
-
-    # антиспам
-    if user_id in last_request:
-        if time.time() - last_request[user_id] < 3:
-            await update.message.reply_text("⏳ Подожди")
-            return
-    last_request[user_id] = time.time()
 
     # ================== РЕФЕРАЛКА КНОПКА ==================
     if text == "👥 Рефералка":
@@ -192,7 +185,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("введи число")
         return
 
-    if text in ["10кк", "20кк", "50кк"]:
+    if text in ["10", "20", "50"]:
         waiting_nick[user_id] = float(text)
         await update.message.reply_text("🎮 Введи ник:")
         return
