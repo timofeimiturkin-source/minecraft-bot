@@ -1,10 +1,12 @@
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
+import time
 
+# ================== НАСТРОЙКИ ==================
 TOKEN = "8522934495:AAEyGsE4RYznrBQp41HrF3zjoc-B15UyJKA"
 ADMIN_ID = 8284104420
+BOT_USERNAME = "VimeVirt_bot"
 
-# ===== НАСТРОЙКИ =====
 SERVER_NAME = "VimeMc"
 
 PAYMENT_TEXT = (
@@ -13,9 +15,9 @@ PAYMENT_TEXT = (
     "⚠️ После оплаты отправь скрин сюда"
 )
 
-REVIEW_LINK = "ВСТАВЬ_ССЫЛКУ_ГРУППЫ"
+REVIEW_LINK = "https://t.me/+OKkKi9f8eAMwODEy"
 
-# ===== КЛАВИАТУРЫ =====
+# ================== МЕНЮ ==================
 menu = ReplyKeyboardMarkup(
     [["💰 Купить валюту", "🖥 Сервер"]],
     resize_keyboard=True
@@ -26,7 +28,7 @@ amount_menu = ReplyKeyboardMarkup(
     resize_keyboard=True
 )
 
-# ===== ДАННЫЕ =====
+# ================== ДАННЫЕ ==================
 waiting_custom = {}
 waiting_nick = {}
 
@@ -36,6 +38,7 @@ bonus_balance = {}
 review_bonus = {}
 
 order_counter = 1000
+last_request = {}
 
 prices = {
     "small": 4.5,
@@ -43,11 +46,7 @@ prices = {
     "large": 3.5
 }
 
-import time
-last_request = {}
-
-
-# ===== ЦЕНА =====
+# ================== ЦЕНА ==================
 def calc_price(amount):
     if amount <= 10:
         return amount * prices["small"]
@@ -56,12 +55,11 @@ def calc_price(amount):
     else:
         return amount * prices["large"]
 
-
-# ===== START =====
+# ================== START ==================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
 
-    # рефералка
+    # рефералка через ссылку
     if context.args:
         try:
             ref_id = int(context.args[0])
@@ -70,10 +68,17 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except:
             pass
 
-    await update.message.reply_text("💰 Магазин валюты", reply_markup=menu)
+    # реф ссылка
+    ref_link = f"https://t.me/{BOT_USERNAME}?start={user_id}"
 
+    await update.message.reply_text(
+        "💰 Магазин валюты\n\n"
+        f"👥 Приглашай друзей и получай +2 млн\n"
+        f"🔗 Твоя ссылка:\n{ref_link}",
+        reply_markup=menu
+    )
 
-# ===== ОСНОВА =====
+# ================== ЛОГИКА ==================
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global order_counter
 
@@ -87,7 +92,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
     last_request[user_id] = time.time()
 
-    # ===== АДМИН =====
+    # ================== АДМИН ==================
     if user_id == ADMIN_ID:
 
         if text == "orders":
@@ -149,7 +154,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await update.message.reply_text("setprice 10 5")
             return
 
-    # ===== ПОЛЬЗОВАТЕЛЬ =====
+    # ================== ПОЛЬЗОВАТЕЛЬ ==================
 
     if text == "💰 Купить валюту":
         await update.message.reply_text("Выбери сумму:", reply_markup=amount_menu)
@@ -180,7 +185,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("введи число")
         return
 
-    # кнопки
     if text in ["10", "20", "50"]:
         waiting_nick[user_id] = float(text)
         await update.message.reply_text("🎮 Введи ник:")
@@ -196,9 +200,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         bonus = bonus_balance.get(user_id, 0)
         bonus += review_bonus.get(user_id, 0)
 
-        final_price = price - bonus
-        if final_price < 0:
-            final_price = 0
+        final_price = max(price - bonus, 0)
 
         bonus_balance[user_id] = 0
         review_bonus[user_id] = 0
@@ -213,7 +215,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "price": final_price
         }
 
-        # рефералка +2 млн
+        # реферал +2 млн
         ref = user_ref.get(user_id)
         if ref:
             bonus_balance[ref] = bonus_balance.get(ref, 0) + 2
@@ -224,7 +226,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"📦 {amount} млн\n"
             f"💰 {final_price} руб\n\n"
             f"{PAYMENT_TEXT}\n\n"
-            "📸 После оплаты отправь скрин"
+            "📸 Отправь скрин оплаты"
         )
 
         await context.bot.send_message(
@@ -233,8 +235,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-
-# ===== СКРИН =====
+# ================== СКРИН ==================
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     photo = update.message.photo[-1].file_id
 
@@ -246,8 +247,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text("⏳ ожидайте подтверждения")
 
-
-# ===== ЗАПУСК =====
+# ================== ЗАПУСК ==================
 def main():
     app = Application.builder().token(TOKEN).build()
 
@@ -257,7 +257,6 @@ def main():
 
     print("Bot started")
     app.run_polling()
-
 
 if __name__ == "__main__":
     main()
