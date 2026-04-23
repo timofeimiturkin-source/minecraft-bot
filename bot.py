@@ -1,7 +1,7 @@
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
 
-TOKEN = "ТВОЙ_ТОКЕН"
+TOKEN = "8522934495:AAEyGsE4RYznrBQp41HrF3zjoc-B15UyJKA"
 ADMIN_ID = 8284104420
 
 # ===== НАСТРОЙКИ =====
