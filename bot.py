@@ -102,6 +102,22 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ================== АДМИН ==================
     if user_id == ADMIN_ID:
 
+        # 🔧 ИЗМЕНЕНИЕ ЦЕНЫ
+        if text.startswith("/setprice"):
+            try:
+                _, tier, value = text.split()
+                value = float(value)
+
+                if tier in prices:
+                    prices[tier] = value
+                    await update.message.reply_text(f"Цена {tier} изменена на {value}")
+                else:
+                    await update.message.reply_text("Используй: small / medium / large")
+
+            except:
+                await update.message.reply_text("Пример: /setprice small 4.5")
+            return
+
         if text == "orders":
             if not orders:
                 await update.message.reply_text("Нет заказов")
