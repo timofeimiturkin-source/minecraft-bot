@@ -2,7 +2,7 @@ from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
 
 # ================== НАСТРОЙКИ ==================
-TOKEN = "8522934495:AAEyGsE4RYznrBQp41HrF3zjoc-B15UyJKA"
+TOKEN = "8522934495:AAEZXzCkJfEZt1s92zzlog4LMcibM4EbgK8"
 ADMIN_ID = 8284104420
 BOT_USERNAME = "VimeVirt_bot"
 
@@ -16,7 +16,8 @@ REVIEW_LINK = "https://t.me/+OKkKi9f8eAMwODEy"
 
 # ================== МЕНЮ ==================
 menu = ReplyKeyboardMarkup(
-    [["💰 Купить валюту", "👥 Рефералка"]],
+    [["💰 Купить валюту", "👥 Рефералка"],
+     ["⭐ Отзывы"]],
     resize_keyboard=True
 )
 
@@ -78,6 +79,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     user_id = update.effective_user.id
     username = update.effective_user.username or "нет_username"
+
+    # ================== ОТЗЫВЫ ==================
+    if text == "⭐ Отзывы":
+        await update.message.reply_text(
+            f"⭐ Отзывы наших покупателей:\n\n{REVIEW_LINK}\n\n"
+            "Можешь ознакомиться перед покупкой"
+        )
+        return
 
     # ================== РЕФЕРАЛКА ==================
     if text == "👥 Рефералка":
