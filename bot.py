@@ -16,8 +16,11 @@ REVIEW_LINK = "https://t.me/+OKkKi9f8eAMwODEy"
 
 # ================== МЕНЮ ==================
 menu = ReplyKeyboardMarkup(
-    [["💰 Купить валюту", "👥 Рефералка"],
-     ["⭐ Отзывы"]],
+    [
+        ["💰 Купить валюту", "👥 Рефералка"],
+        ["⭐ Отзывы"],
+        ["⚙️ Цены"]
+    ],
     resize_keyboard=True
 )
 
@@ -26,9 +29,15 @@ amount_menu = ReplyKeyboardMarkup(
     resize_keyboard=True
 )
 
+price_menu = ReplyKeyboardMarkup(
+    [["small", "medium", "large"]],
+    resize_keyboard=True
+)
+
 # ================== ДАННЫЕ ==================
 waiting_custom = {}
 waiting_nick = {}
+waiting_price = {}
 
 orders = {}
 user_ref = {}
@@ -59,8 +68,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args:
         try:
             ref_id = int(context.args[0])
+
             if ref_id != user_id:
                 user_ref[user_id] = ref_id
+
         except:
             pass
 
@@ -102,28 +113,48 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ================== АДМИН ==================
     if user_id == ADMIN_ID:
 
-        # 🔧 ИЗМЕНЕНИЕ ЦЕНЫ
-        if text.startswith("/setprice"):
-            try:
-                _, tier, value = text.split()
-                value = float(value)
-
-                if tier in prices:
-                    prices[tier] = value
-                    await update.message.reply_text(f"Цена {tier} изменена на {value}")
-                else:
-                    await update.message.reply_text("Используй: small / medium / large")
-
-            except:
-                await update.message.reply_text("Пример: /setprice small 4.5")
+        # ===== ИЗМЕНЕНИЕ ЦЕН =====
+        if text == "⚙️ Цены":
+            await update.message.reply_text(
+                "Выбери категорию:",
+                reply_markup=price_menu
+            )
             return
 
+        if text in ["small", "medium", "large"]:
+            waiting_price[user_id] = text
+
+            await update.message.reply_text(
+                f"Введи новую цену для {text}:"
+            )
+            return
+
+        if user_id in waiting_price:
+            try:
+                value = float(text)
+
+                tier = waiting_price.pop(user_id)
+
+                prices[tier] = value
+
+                await update.message.reply_text(
+                    f"✅ Цена {tier} изменена на {value}",
+                    reply_markup=menu
+                )
+
+            except:
+                await update.message.reply_text("Введи число")
+            return
+
+        # ===== СПИСОК ЗАКАЗОВ =====
         if text == "orders":
+
             if not orders:
                 await update.message.reply_text("Нет заказов")
                 return
 
             msg = "📋 ЗАКАЗЫ:\n\n"
+
             for oid, o in orders.items():
                 msg += (
                     f"#{oid}\n"
@@ -136,7 +167,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(msg)
             return
 
+        # ===== ЗАКАЗ ВЫПОЛНЕН =====
         if text.startswith("done"):
+
             try:
                 _, oid = text.split()
                 oid = int(oid)
@@ -149,7 +182,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         text="✅ Заказ выполнен!"
                     )
 
-                    review_bonus[o["user_id"]] = review_bonus.get(o["user_id"], 0) + 1
+                    review_bonus[o["user_id"]] = (
+                        review_bonus.get(o["user_id"], 0) + 1
+                    )
 
                     await context.bot.send_message(
                         chat_id=o["user_id"],
@@ -160,45 +195,75 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         )
                     )
 
-                    await update.message.reply_text(f"Готово #{oid}")
+                    await update.message.reply_text(
+                        f"Готово #{oid}"
+                    )
+
             except:
                 await update.message.reply_text("done 1001")
+
             return
 
     # ================== ПОЛЬЗОВАТЕЛЬ ==================
 
     if text == "💰 Купить валюту":
-        await update.message.reply_text("Выбери сумму:", reply_markup=amount_menu)
+        await update.message.reply_text(
+            "Выбери сумму:",
+            reply_markup=amount_menu
+        )
         return
 
+    # ===== СВОЯ СУММА =====
     if text == "✏️ Своя сумма":
         waiting_custom[user_id] = True
-        await update.message.reply_text("Введи сумму (до 120 млн):")
+
+        await update.message.reply_text(
+            "Введи сумму (до 120 млн):"
+        )
         return
 
     if user_id in waiting_custom:
+
         try:
             amount = float(text)
 
             if amount > 120:
-                await update.message.reply_text("❌ максимум 120 млн")
+                await update.message.reply_text(
+                    "❌ максимум 120 млн"
+                )
                 return
 
             waiting_custom.pop(user_id)
+
             waiting_nick[user_id] = amount
-            await update.message.reply_text("🎮 Введи ник:")
+
+            await update.message.reply_text(
+                "🎮 Введи ник:"
+            )
+
         except:
-            await update.message.reply_text("введи число")
+            await update.message.reply_text(
+                "введи число"
+            )
+
         return
 
+    # ===== ГОТОВЫЕ КНОПКИ =====
     if text in ["10", "20", "50"]:
+
         waiting_nick[user_id] = float(text)
-        await update.message.reply_text("🎮 Введи ник:")
+
+        await update.message.reply_text(
+            "🎮 Введи ник:"
+        )
+
         return
 
     # ================== ЗАКАЗ ==================
     if user_id in waiting_nick:
+
         nick = text
+
         amount = waiting_nick.pop(user_id)
 
         price = calc_price(amount)
@@ -222,9 +287,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "price": final_price
         }
 
+        # ===== РЕФЕРАЛЬНЫЙ БОНУС =====
         ref = user_ref.get(user_id)
+
         if ref:
-            bonus_balance[ref] = bonus_balance.get(ref, 0) + 2
+            bonus_balance[ref] = (
+                bonus_balance.get(ref, 0) + 2
+            )
 
         await update.message.reply_text(
             f"🧾 Заказ #{oid}\n\n"
@@ -234,6 +303,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "📸 Отправь скрин оплаты"
         )
 
+        # ===== УВЕДОМЛЕНИЕ АДМИНУ =====
         await context.bot.send_message(
             chat_id=ADMIN_ID,
             text=(
@@ -245,27 +315,50 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"💰 {final_price} руб"
             )
         )
+
         return
 
-# ================== СКРИН ==================
+# ================== СКРИНШОТ ==================
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
     await context.bot.send_photo(
         chat_id=ADMIN_ID,
         photo=update.message.photo[-1].file_id,
-        caption=f"📸 скрин @{update.effective_user.username or 'нет_username'}"
+        caption=(
+            f"📸 скрин "
+            f"@{update.effective_user.username or 'нет_username'}"
+        )
     )
 
-    await update.message.reply_text("⏳ ожидайте пополнения баланса")
+    await update.message.reply_text(
+        "⏳ ожидайте пополнения баланса"
+    )
 
 # ================== ЗАПУСК ==================
 def main():
+
     app = Application.builder().token(TOKEN).build()
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
+    app.add_handler(
+        CommandHandler("start", start)
+    )
+
+    app.add_handler(
+        MessageHandler(
+            filters.TEXT & ~filters.COMMAND,
+            handle_message
+        )
+    )
+
+    app.add_handler(
+        MessageHandler(
+            filters.PHOTO,
+            handle_photo
+        )
+    )
 
     print("Bot started")
+
     app.run_polling()
 
 if __name__ == "__main__":
